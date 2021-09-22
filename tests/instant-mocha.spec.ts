@@ -33,7 +33,7 @@ describe.each([
 			cwd: path.resolve('tests/fixture'),
 		}).catch(error => error);
 
-		expect(stdout).toMatch('2 passing');
+		expect(stdout).toMatch('3 passing');
 		expect(exitCode).toBe(0);
 	});
 
@@ -99,6 +99,21 @@ describe.each([
 		expect(exitCode).toBe(0);
 	});
 
+	test('function config', async () => {
+		const { exitCode, stdout } = await execa('node', [
+			...webpackVersion,
+			instantMocha,
+			'--webpackConfig',
+			'webpack.config.function.js',
+			'tests/passing-test.js',
+		], {
+			cwd: path.resolve('tests/fixture'),
+		}).catch(error => error);
+
+		expect(stdout).toMatch('3 passing');
+		expect(exitCode).toBe(0);
+	});
+
 	test('watch tests', async () => {
 		const stdoutBuffers = [];
 
@@ -118,7 +133,7 @@ describe.each([
 		});
 
 		const stdoutPassing = await collectStdout(stdoutBuffers);
-		expect(stdoutPassing).toMatch('2 passing');
+		expect(stdoutPassing).toMatch('3 passing');
 
 		const passingTestPath = './tests/fixture/tests/passing-test.js';
 		const passingTestSource = (await fs.promises.readFile(passingTestPath)).toString();
@@ -126,13 +141,27 @@ describe.each([
 		await fs.promises.writeFile(passingTestPath, passingTestSource.replace('=== 3', '=== 4'));
 
 		const stdoutFailing = await collectStdout(stdoutBuffers);
-		expect(stdoutFailing).toMatch('1 passing');
+		expect(stdoutFailing).toMatch('2 passing');
 
 		await fs.promises.writeFile(passingTestPath, passingTestSource);
 
 		const stdoutPassing2 = await collectStdout(stdoutBuffers);
-		expect(stdoutPassing2).toMatch('2 passing');
+		expect(stdoutPassing2).toMatch('3 passing');
 
 		instantMochaWatch.cancel();
 	}, 20000);
+});
+
+test('top level await', async () => {
+	const { exitCode, stdout } = await execa('node', [
+		instantMocha,
+		'--webpackConfig',
+		'webpack.config.top-level-await.js',
+		'tests/top-level-await.js',
+	], {
+		cwd: path.resolve('tests/fixture'),
+	}).catch(error => error);
+
+	expect(stdout).toMatch('2 passing');
+	expect(exitCode).toBe(0);
 });
