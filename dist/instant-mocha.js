@@ -11,19 +11,57 @@ const aggregate_error_1 = __importDefault(require("aggregate-error"));
 const ansi_escapes_1 = __importDefault(require("ansi-escapes"));
 const mocha_1 = require("./lib/mocha");
 const webpack_1 = require("./lib/webpack");
-async function instantMocha(options) {
-    assert_1.default(options.webpackConfig, 'Webpack configuration path must be passed in');
-    const webpackConfigPath = path_1.default.resolve(options.webpackConfig);
-    assert_1.default(fs_1.default.existsSync(webpackConfigPath), `Invalid Webpack configuration path: ${webpackConfigPath}`);
-    let webpackConfig;
+async function getWebpackConfig(webpackConfigPath, options) {
+    (0, assert_1.default)(fs_1.default.existsSync(webpackConfigPath), `Invalid Webpack configuration path: ${webpackConfigPath}`);
+    let config;
     try {
         // eslint-disable-next-line node/global-require
-        webpackConfig = require(webpackConfigPath);
+        config = require(webpackConfigPath);
     }
-    catch {
-        throw new Error(`Faild to load Webpack configuration: ${webpackConfigPath}`);
+    catch (error) {
+        if (error.code === 'ERR_REQUIRE_ESM') {
+            // Using webpacks new function approach to avoid typescript
+            // from transpiling dynamic import to require which breaks
+            // the purpose of this since require can only load cjs files
+            // and not esm modules
+            // See issue https://github.com/microsoft/TypeScript/issues/43329
+            // eslint-disable-next-line no-new-func
+            const dynamicImport = new Function('id', 'return import(id);');
+            config = (await dynamicImport(webpackConfigPath)).default;
+        }
+        else {
+            throw new Error(`Faild to load Webpack configuration: ${webpackConfigPath}`);
+        }
     }
-    const testFiles = collect_files_js_1.default({
+    if (typeof config === 'function') {
+        const environment = {};
+        if (options.watch) {
+            environment.WEBPACK_WATCH = true;
+        }
+        else {
+            environment.WEBPACK_BUILD = true;
+        }
+        const argv = {
+            env: environment,
+        };
+        if (options.mode) {
+            argv.mode = options.mode;
+        }
+        if (options.watch) {
+            argv.watch = options.watch;
+        }
+        return config(environment, argv);
+    }
+    if (options.mode) {
+        config.mode = options.mode;
+    }
+    return config;
+}
+async function instantMocha(options) {
+    (0, assert_1.default)(options.webpackConfig, 'Webpack configuration path must be passed in');
+    const webpackConfigPath = path_1.default.resolve(options.webpackConfig);
+    const webpackConfig = await getWebpackConfig(webpackConfigPath, options);
+    const testFiles = (0, collect_files_js_1.default)({
         ignore: [],
         file: [],
         ...options,
@@ -40,7 +78,7 @@ async function instantMocha(options) {
             },
         });
     }
-    const webpackCompiler = webpack_1.createWebpackCompiler(webpackConfig, testFiles);
+    const webpackCompiler = (0, webpack_1.createWebpackCompiler)(webpackConfig, testFiles);
     if (options.watch) {
         webpackCompiler.watch({}, (error, stats) => {
             if (error) {
@@ -66,13 +104,13 @@ async function instantMocha(options) {
              * the stdout caching.
              */
             setImmediate(() => {
-                mocha_1.runMocha(options);
+                (0, mocha_1.runMocha)(options);
             });
         });
     }
     else {
         await webpackCompiler.$run();
-        return await mocha_1.runMocha(options);
+        return await (0, mocha_1.runMocha)(options);
     }
 }
 exports.default = instantMocha;

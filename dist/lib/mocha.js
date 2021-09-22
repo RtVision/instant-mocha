@@ -16,17 +16,15 @@ function createMochaInstance(mochaOptions) {
         });
     }
     mocha.$run = $run;
-    // @ts-expect-error overwriting private prototpe method
-    mocha.loadFiles = function loadFiles(callback) {
+    mocha.loadFilesAsync = async function loadFilesAsync() {
         const { suite, files, } = this;
+        // Call with true tell mocha that we will be handling the file load outselves
+        this.lazyLoadFiles(true);
         for (let file of files) {
             file = path_1.default.resolve(file);
             suite.emit(suite_js_1.default.constants.EVENT_FILE_PRE_REQUIRE, global, file, this);
-            suite.emit(suite_js_1.default.constants.EVENT_FILE_REQUIRE, memfs_1.mRequire(file), file, this);
+            suite.emit(suite_js_1.default.constants.EVENT_FILE_REQUIRE, await (0, memfs_1.mRequire)(file), file, this);
             suite.emit(suite_js_1.default.constants.EVENT_FILE_POST_REQUIRE, global, file, this);
-        }
-        if (typeof callback === 'function') {
-            callback();
         }
     };
     return mocha;
@@ -34,6 +32,7 @@ function createMochaInstance(mochaOptions) {
 async function runMocha(options) {
     const mocha = createMochaInstance(options);
     mocha.files = ['/main.js'];
+    await mocha.loadFilesAsync();
     return await mocha.$run();
 }
 exports.runMocha = runMocha;

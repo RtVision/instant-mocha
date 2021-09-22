@@ -10,8 +10,8 @@ const instant_mocha_1 = __importDefault(require("./instant-mocha"));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { version } = require('../package.json');
 const INSTANT_MOCHA_OPTIONS_GROUP = 'instant-mocha options';
-const argv = options_js_1.loadOptions(process.argv.slice(2));
-yargs_1.default()
+const argv = (0, options_js_1.loadOptions)(process.argv.slice(2));
+(0, yargs_1.default)()
     .scriptName('instant-mocha')
     .command({
     ...run_js_1.default,
@@ -38,7 +38,7 @@ yargs_1.default()
     },
     async handler(options) {
         try {
-            const failures = await instant_mocha_1.default(options);
+            const failures = await (0, instant_mocha_1.default)(options);
             if (failures > 0) {
                 // Mocha originally exists with the number of failures
                 // but that's non-standard: https://github.com/mochajs/mocha/issues/3559
@@ -61,7 +61,13 @@ yargs_1.default()
         description: 'Watch mode',
         group: INSTANT_MOCHA_OPTIONS_GROUP,
     },
+    mode: {
+        description: 'Mode passed to webpack development|production',
+        group: INSTANT_MOCHA_OPTIONS_GROUP,
+        type: 'string',
+    },
 })
+    .alias('m', 'mode')
     .help('help', 'Show usage information & exit')
     .alias('help', 'h')
     .version('version', 'Show version number & exit', version)

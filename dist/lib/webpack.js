@@ -16,6 +16,8 @@ function createWebpackCompiler(webpackConfig, testFiles) {
         path: '/',
         // https://stackoverflow.com/a/64715069
         publicPath: '',
+        // to override any possible custom paths in the webpack config
+        filename: 'main.js',
         // For Node.js env
         // https://webpack.js.org/configuration/output/#outputglobalobject
         globalObject: 'this',
@@ -71,7 +73,7 @@ function createWebpackCompiler(webpackConfig, testFiles) {
             new LoaderTargetPlugin(target).apply(compiler);
         };
     }
-    const compiler = webpack_1.default(config);
+    const compiler = (0, webpack_1.default)(config);
     compiler.outputFileSystem = memfs_1.mfs;
     function $run() {
         return new Promise((resolve, reject) => {
